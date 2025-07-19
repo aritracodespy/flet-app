@@ -1,130 +1,280 @@
-
-import flet as ft
-import json
 from google import genai
+from google.genai import types
+import flet as ft
 
-ai_model = "gemini-2.0-flash-lite-001"
+def create_new_chat(apikey:str, model:str, instruction:str):
+    try:
+        client = genai.Client(api_key=apikey)
+        chat = client.chats.create(
+            model=model,
+            config=types.GenerateContentConfig(
+                temperature=1,
+                system_instruction=instruction,
+                tools=[types.Tool(google_search=types.GoogleSearch())]
+            )
+        )
+        return chat
+    except:
+        return None
+
+def get_ai_responce(chat, message:str):
+    try:
+        reaponce = chat.send_message(
+            message=message
+        )
+        return reaponce.text
+    except:
+        return None
 
 
 def main(page: ft.Page):
-    page.title = "Flet API Client"
-    page.vertical_alignment = ft.MainAxisAlignment.START
+    page.title = "GenAi"
+    page.theme_mode = ft.ThemeMode.DARK
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.padding = 20
 
-    def get_key():
-        data = page.client_storage.get("apikey")
-        return json.loads(data) if data else ""
-
-    def save_key(keys):
-        page.client_storage.set("apikey", json.dumps(keys))
-
-    response_list = ft.ListView(expand=True, spacing=2, auto_scroll=True)
-    input_field = ft.TextField(expand=True, label="Your query..",  multiline= True, max_lines=3, min_lines=1,autofocus = False)
-
-    key_input = ft.TextField(expand=True, label="Enter Api Key",value=get_key(), multiline= True, max_lines=3, min_lines=1)
-
-    def save_api_key(e):
-        key = key_input.value
-        page.close(dlg_key)
-        if key == "":
-           print("enpty")
-           return
-        save_key(key)
-        top_button.icon_color = ft.Colors.GREEN
-        page.update()
-        print(key)
+    chat = None
+    
 
 
-    def send_post(e):
-        user_input = input_field.value
-        key = get_key()
-        if key == "" or user_input == "":
-            response_list.controls.append(ft.Text("Add a valid apikey!")) if key == "" else response_list.controls.append(ft.Text("enter a prompty!"))
-            page.update()
-            return
+    def get_saved_settings():
         try:
+            api_key = page.client_storage.get("api_key")
+            instruction = page.client_storage.get("instruction")
+            model = page.client_storage.get("model")
+            return api_key, instruction, model
+        except:
+            return None, None, None
 
-            response_list.controls.append(
-                 ft.Row(controls=[ft.Container(expand=True,padding=ft.Padding(20,5,20,5),margin=10,border_radius=8,
-                                      bgcolor=ft.Colors.GREY_500,
-                                      content=ft.Text(user_input,
-                                                      color=ft.Colors.BLACK,
-                                                      size=16,
-                                                      text_align=ft.TextAlign.RIGHT)
-                        )], alignment=ft.MainAxisAlignment.END,expand=True))
-
-
-            client = genai.Client(api_key=key)
-            
-            page.update()
-
-            response = client.models.generate_content(
-                model = "gemini-2.0-flash-lite-001", contents = str(user_input)
-            )
-
-            response_list.controls.append(ft.Container(
-                content=ft.Markdown(response.text),
-                expand=True,
-                padding=20,
-                margin=10,
-                border_radius=8,
-                bgcolor=ft.Colors.GREY_800))
-
-
-        except Exception as ex:
-            response_list.controls.append(ft.Text(f"Exception: {ex}"))
-        finally:
-            input_field.autofocus = False
-
-            input_field.value = ""
+    def save_settings(api_key, instruction, model):
+        try:
+            page.client_storage.set("api_key", api_key)
+            page.client_storage.set("instruction", instruction)
+            page.client_storage.set("model", model)
+        except:
+            page.open(ft.SnackBar(content=ft.Text("Error saving settings")))
             page.update()
 
 
-    dlg_key = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Add a new Apikey"),
-            content=ft.Column(expand=False,tight=True, controls=[key_input,ft.TextButton("Dont have a api key GoTo ai.google.dev Webside",
-                                   on_click=lambda _: page.launch_url("https://ai.google.dev/"))]),
-            actions=[
-                ft.TextButton("ADD", on_click = save_api_key),
-                ft.TextButton("Cancel", on_click=lambda e: page.close(dlg_key)),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
+    def update_settings(e):
+        nonlocal chat
+        api_key = api_key_input.value
+        instruction = instruction_input.value
+        model = model_input.value
+        if api_key is None or instruction is None or model is None:
+            return
+        save_settings(api_key, instruction, model)
+        page.update()
+        chat = create_new_chat(api_key, model, instruction)
+        chat_list.controls.clear()
+        update_chat("system", f"GenAi Active! Model: {model}")
+        page.update()
+        
+
+
+    def update_chat(role, message):
+        if message == "":
+            return
+
+        is_user = role == "user"
+        is_ai = role == "ai"
+
+        # Message container styling
+        message_container = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Row(
+                        controls=[
+                            ft.Text(
+                                role.capitalize(),
+                                weight=ft.FontWeight.BOLD,
+                                size=11,
+                                opacity=0.8,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    ft.Markdown(
+                        message,
+                        code_theme=ft.MarkdownCodeTheme.TOMORROW_NIGHT,
+                        selectable=True,
+                        extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                    ),
+                ],
+                spacing=4,
+                tight=True,
+            ),
+            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            border_radius=ft.border_radius.all(10),
         )
 
+        # Set background color and alignment
+        if is_user:
+            message_container.bgcolor = ft.Colors.BLUE_GREY_800
+            alignment = ft.alignment.center_right
+        elif is_ai:
+            message_container.bgcolor = ft.Colors.with_opacity(0.15, ft.Colors.WHITE)
+            alignment = ft.alignment.center_left
+        else:  # System message
+            message_container.bgcolor = None
+            alignment = ft.alignment.center
 
-    top_button = ft.ElevatedButton(
-        icon_color = ft.Colors.RED_300,
-        text="Api Key",
-        icon=ft.Icons.CIRCLE,
-        on_click=lambda e: page.open(dlg_key)
+        # Add the message to the chat list in a Container for alignment
+        chat_list.controls.append(
+            ft.Container(
+                content=message_container,
+                alignment=alignment,
+            )
+        )
+        page.update()
+    
+    def send_message(e):
+        nonlocal chat
+        if chat is None:
+            return
+        message = user_input.value
+        if message is None or message == "":
+            return
+        user_input.value = ""
+        update_chat("user", message)
+
+        # Disable input and show thinking animation
+        user_input.disabled = True
+        send_button.disabled = True
+        thinking_control = ft.Container(
+            content=ft.ProgressRing(width=20, height=20, stroke_width=2),
+            alignment=ft.alignment.center_left,
+            padding=ft.padding.symmetric(vertical=10, horizontal=12),
+        )
+        chat_list.controls.append(thinking_control)
+        page.update()
+
+        # Get AI response
+        responce = get_ai_responce(chat, message)
+
+        # Remove thinking animation and re-enable input
+        chat_list.controls.pop()
+        user_input.disabled = False
+        send_button.disabled = False
+        
+        if responce is not None:
+            update_chat("ai", responce)
+        else:
+            page.update()
+
+            
+    chat_list = ft.ListView(
+        expand=True,
+        spacing=10,
+        auto_scroll=True
+    )
+    chat_container = ft.Container(
+        content=chat_list,
+        expand=True,
+        border=ft.border.all(1, ft.Colors.OUTLINE),
+        border_radius=ft.border_radius.all(10),
+        padding=ft.padding.all(10)
     )
 
-    bottom_row = ft.Row(
+    user_input = ft.TextField(
+        hint_text="Ask me anything...",
+        expand=True,
+        border_radius=ft.border_radius.all(10),
+        filled=True
+    )
+    send_button = ft.IconButton(
+        icon=ft.Icons.SEND,
+        icon_color=ft.Colors.GREEN_400,
+        tooltip="Send message",
+        on_click=send_message
+    )
+
+    api_key_input = ft.TextField(
+        hint_text="Api key",
+        password=True,
+        border_radius=ft.border_radius.all(10),
+        filled=True
+    )
+    instruction_input = ft.TextField(
+        hint_text="Instruction",
+        border_radius=ft.border_radius.all(10),
+        multiline=True,
+        min_lines=3,
+        max_lines=6,
+        filled=True
+    )
+    model_input = ft.TextField(
+        hint_text="Model",
+        border_radius=ft.border_radius.all(10),
+        filled=True
+    )
+    save_button = ft.ElevatedButton(text="Save Settings", on_click=update_settings)
+
+
+    input_row = ft.Row(
         controls=[
-            input_field,
-            ft.IconButton(icon=ft.Icons.SEND,icon_size=40,icon_color=ft.Colors.WHITE,padding=ft.Padding(30,0,30,0),on_click=send_post)
+            user_input,
+            send_button
         ],
-        alignment=ft.MainAxisAlignment.END,spacing=20,
+        alignment=ft.MainAxisAlignment.START
     )
 
-    clr_pop = ft.PopupMenuButton(
-        items=[
-            ft.PopupMenuItem(icon=ft.Icons.CLEAR, text="Clear",on_click=lambda _: [response_list.controls.clear(),page.update()])])
+    chat_view = ft.Tab(
+        text="Chat",
+        icon=ft.Icons.CHAT_BUBBLE_OUTLINE,
+        content=ft.Container(
+            content=ft.Column(
+                controls=[
+                    chat_container,
+                    input_row
+                ],
+                expand=True
+            ),
+            padding=ft.Padding(10,10,10,10),
+            expand=True,
+        )
+    )
+    setting_view = ft.Tab(
+        text="Settings",
+        icon=ft.Icons.SETTINGS_OUTLINED,
+        content=ft.Container(
+            content=ft.Column(
+                controls=[
+                    api_key_input,
+                    instruction_input,
+                    model_input,
+                    save_button,
+                ],
+                spacing=15,
+                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+            ),
+            padding=ft.padding.symmetric(horizontal=40),
+        ),
+    )
+    
+    apikey, instruction, model = get_saved_settings()
+    if apikey is not None and instruction is not None and model is not None:
+        api_key_input.value = apikey
+        instruction_input.value = instruction
+        model_input.value = model
+        page.update()
+        chat = create_new_chat(apikey, model, instruction)
+        chat_list.controls.clear()
+        update_chat("system", f"GenAi Active! Model: {model}")
+        page.update()
 
+    page.add(
+        ft.Container(
+            content=ft.Tabs(
+                selected_index=0,
+                animation_duration=300,
+                tabs=[chat_view, setting_view],
+                expand=True
+            ),
+            expand=True,
+        )
+    )
 
-    page.add(ft.Container(expand=True,padding=ft.Padding(0,20,0,20),content=ft.Column(expand =True, controls=[
-             ft.Row([
-                ft.Text("Ai ChatBot Python",color=ft.Colors.YELLOW,size=20,weight=ft.FontWeight.W_500),
-                ft.Row([top_button,clr_pop],alignment=ft.MainAxisAlignment.END)],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-             response_list,
-             bottom_row,
-        ])
-    ))
-
-
-    key = get_key()
-    top_button.icon_color = ft.Colors.RED if key == "" else ft.Colors.GREEN
-    page.update()
-
-ft.app(target=main)
+if __name__ == "__main__":
+    ft.app(target=main)
