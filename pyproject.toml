@@ -1,7 +1,7 @@
 [project]
-name = "AiChatbot"
+name = "AiAgent"
 version = "1.0.0"
-description = "app to chat with Gemini"
+description = "app to chat with an ai agent build with Google Ai"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -23,9 +23,9 @@ company = "Flet_aritracodespy"
 # copyright text to display in about app dialogs
 copyright = "Copyright (C) 2025 by Flet"
 
-#app = "main.py"
+app = "src/main.py"
 
-#assets = ["stocks.json"]
+assets = ["src/events.json"]
 permissions = ["internet"]
 
 [tool.flet.app]
