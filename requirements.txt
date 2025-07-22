@@ -1,5 +1,0 @@
-flet
-google-genai
-tradingview_ta
-ddgs
-requests
