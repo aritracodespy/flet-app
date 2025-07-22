@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 import requests
 from ddgs import DDGS
-import wikipedia
 from datetime import datetime
 from tradingview_ta import TA_Handler
 
@@ -209,33 +208,6 @@ def get_latest_news(query: str, region: str = "in-en", max_results: int = 10) ->
         return results
     except Exception as e:
         return [{"error": str(e)}]
-
-
-def get_wikipedia_summary(topic: str, sentences: int = 3) -> str:
-    """
-    Fetch a summary from Wikipedia for the given topic.
-
-    Args:
-        topic (str): The topic to search on Wikipedia.
-        sentences (int): Number of summary sentences to return.
-
-    Returns:
-        str: A summary of the topic from Wikipedia.
-
-    Example:
-    >>> get_wikipedia_summary("Python (programming language)")
-    """
-
-    try:
-        summary = wikipedia.summary(topic, sentences=sentences, auto_suggest=True, redirect=True)
-        return summary
-    except wikipedia.DisambiguationError as e:
-        return f"The topic '{topic}' is ambiguous. Try being more specific.\nOptions: {e.options[:5]}"
-    except wikipedia.PageError:
-        return f"No Wikipedia page found for '{topic}'."
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
-
 
 def convert_currency(amount: float, from_currency: str, to_currency: str) -> str:
     """
