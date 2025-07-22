@@ -7,7 +7,7 @@ import wikipedia
 from datetime import datetime
 from tradingview_ta import TA_Handler
 
-EVENTS_FILE = os.path.join(os.getcwd(), "./assets/events.json")
+EVENTS_FILE = os.path.join(os.path.dirname(__file__), "events.json")
  
 def per_diff(num1: float, num2: float) -> float:
     return ((num1 - num2) / num2) * 100
