@@ -1,7 +1,9 @@
+
+
 from google import genai
 from google.genai import types
 import flet as ft
-from utils import (
+from functionsTools import (
     get_current_time,
     get_current_date,
     get_current_weather,
@@ -35,6 +37,7 @@ system_instruction = """
 - Identify which tool(s) you need to use.
 - Ask for or confirm any required arguments before using a tool.
 - Use the "Search the Internet" tool to retrieve up-to-date or real-time information.
+-Upon starting a conversation greet the user and intrroduce yourself with the information about what can you do.
 """
 
 def create_new_chat(apikey:str, model:str, instruction:str):
@@ -104,6 +107,7 @@ def main(page: ft.Page):
         chat = create_new_chat(api_key, model, instruction)
         chat_list.controls.clear()
         update_chat("system", f"GenAi Active! Model: {model}")
+        page.open(ft.SnackBar(content=ft.Text("Settings Updated",color=ft.Colors.GREEN),show_close_icon=True))
         page.update()
 
 
@@ -152,7 +156,7 @@ def main(page: ft.Page):
             message_container.bgcolor = ft.Colors.with_opacity(0.15, ft.Colors.WHITE)
             alignment = ft.alignment.center_left
         else:  # System message
-            message_container.bgcolor = None
+            message_container.bgcolor = ft.Colors.with_opacity(0.05, ft.Colors.BLUE_100)
             alignment = ft.alignment.center
 
         # Add the message to the chat list in a Container for alignment
@@ -196,6 +200,7 @@ def main(page: ft.Page):
         if responce is not None:
             update_chat("ai", responce)
         else:
+            update_chat("system", "Error getting response")
             page.update()
 
 
@@ -296,8 +301,9 @@ def main(page: ft.Page):
         page.update()
         chat = create_new_chat(apikey, model, instruction)
         chat_list.controls.clear()
-        update_chat("system", f"GenAi Active! Model: {model}")
+        update_chat("system", f"Agent is Active! Model: {model}")
         page.update()
+    
 
     page.add(
         ft.Container(
