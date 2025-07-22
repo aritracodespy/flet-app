@@ -23,7 +23,7 @@ company = "Flet_aritracodespy"
 # copyright text to display in about app dialogs
 copyright = "Copyright (C) 2025 by Flet"
 
-app = "src/main.py"
+#app = "src/main.py"
 
 assets = ["src/events.json"]
 permissions = ["internet"]
