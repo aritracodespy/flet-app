@@ -2,5 +2,4 @@ flet
 google-genai
 tradingview_ta
 ddgs
-wikipedia
 requests
