@@ -1,7 +1,7 @@
 [project]
-name = "AiAgent"
+name = "DDG News App"
 version = "1.0.0"
-description = "app to chat with an ai agent build with Google Ai"
+description = "A news app build with python ddgs mpdule."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
