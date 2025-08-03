@@ -1,5 +1,5 @@
 [project]
-name = "Ai-ChatBot"
+name = "Chatrify-ChatBot"
 version = "1.0.0"
 description = "A chat bot application for openai compatible llms providers."
 readme = "README.md"
@@ -25,7 +25,7 @@ copyright = "Copyright (C) 2025 by Flet"
 
 #app = "src/main.py"
 
-assets = ["src/chat_settings.json"]
+# assets = ["src/chat_settings.json"]
 permissions = ["internet"]
 
 [tool.flet.app]
