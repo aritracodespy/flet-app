@@ -1,7 +1,7 @@
 [project]
-name = "DDG News App"
+name = "Ai-ChatBot"
 version = "1.0.0"
-description = "A news app build with python ddgs mpdule."
+description = "A chat bot application for openai compatible llms providers."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -25,7 +25,7 @@ copyright = "Copyright (C) 2025 by Flet"
 
 #app = "src/main.py"
 
-#assets = ["src/events.json"]
+assets = ["src/chat_settings.json"]
 permissions = ["internet"]
 
 [tool.flet.app]
