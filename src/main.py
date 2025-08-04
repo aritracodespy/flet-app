@@ -64,6 +64,15 @@ def main(page: ft.Page):
         }
         page.client_storage.set("cridentials", cridentials)
 
+    def get_notes():
+        notes = page.client_storage.get("notes")
+        if notes:
+            return notes
+        return ""
+
+    def save_notes(notes):
+        page.client_storage.set("notes", notes)
+
 
     base_url_input = ft.TextField(label="Base URL", value=base_url)
     api_key_input = ft.TextField(label="API Key", password=True, can_reveal_password=True, value=api_key)
@@ -78,6 +87,13 @@ def main(page: ft.Page):
         auto_scroll=True,
     )
 
+    notes_input = ft.TextField(
+        value = get_notes(),
+        expand =True,
+        border=ft.InputBorder.NONE,
+        multiline = True,
+        min_lines = 20,)
+
     def add_message(sender, message):
         time_stamp = datetime.now().strftime("%H:%M:%S")
 
@@ -90,7 +106,7 @@ def main(page: ft.Page):
         else:
             color = ft.Colors.AMBER_300
             bg_color = ft.Colors.with_opacity(0.1, ft.Colors.BLACK)
-        
+
         message_widget = ft.Container(content=ft.Column(tight=True,spacing=10,controls=[
             ft.Row(expand=True,controls=[ft.Text(f"{sender.upper()} ({time_stamp})",color=color,size=12)]),
             ft.Row(expand=True,controls=[ft.Container(expand=1,bgcolor=bg_color,padding=10,content=ft.Markdown(
@@ -143,10 +159,18 @@ def main(page: ft.Page):
         add_message("ai", output)
 
     def clear_clicked(e):
-        nonlocal chat_history
+        nonlocal chat_history, model
         chat_history = []
         chat_list.controls.clear()
+        add_message("system", f"New Chat started, Ai model: {model}")
         page.update()
+
+    def save_notes_clicked(e):
+        notes = notes_input.value
+        save_notes(notes)
+        page.go("/")
+
+
 
     chat_screen = ft.Column(
         expand=True,
@@ -157,6 +181,7 @@ def main(page: ft.Page):
                 ft.Text("OpenAI BOT", size=20,color=ft.Colors.GREEN),
                 ft.Row(controls=[
                     ft.IconButton(icon=ft.Icons.SETTINGS, on_click=lambda e: page.go("/settings")),
+                    ft.IconButton(icon=ft.Icons.EVENT_NOTE, on_click=lambda e: page.go("/notes")),
                     ft.IconButton(icon=ft.Icons.CLEAR,on_click=clear_clicked)],alignment=ft.MainAxisAlignment.SPACE_AROUND)
             ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Divider(),
@@ -181,6 +206,21 @@ def main(page: ft.Page):
         ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
     ])
 
+    notes_screen = ft.Column(
+        horizontal_alignment = ft.CrossAxisAlignment.CENTER,
+        controls = [
+            notes_input,
+            ft.Divider(),
+            ft.Row(
+                width=page.width*0.8 if page.width else 200,
+                controls=[
+                    ft.ElevatedButton("Save", expand=True, on_click=save_notes_clicked),
+                    ft.ElevatedButton("Back", expand=True, on_click=lambda _:page.go("/")),
+                ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+            )
+        ]
+    )
+
     def route_change(route):
         page.views.clear()
         page.views.append(
@@ -194,6 +234,13 @@ def main(page: ft.Page):
                 ft.View(
                     "/settings",
                     [ft.Container(expand=True,content=settings_screen,padding=ft.Padding(0,30,0,20))],
+                )
+            )
+        if page.route == "/notes":
+            page.views.append(
+                ft.View(
+                    "/notes",
+                    [ft.Container(expand=True,content=notes_screen,padding=ft.Padding(0,30,0,20))],
                 )
             )
         page.update()
