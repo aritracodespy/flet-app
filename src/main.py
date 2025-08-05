@@ -1,3 +1,4 @@
+
 import flet as ft
 from datetime import datetime
 from openai import OpenAI
@@ -11,18 +12,13 @@ def create_client(api_key, base_url):
         return client
     except Exception as e:
         return None
-def get_ai_response(client, model, user_query, history = [], instruction = "you are a helpful assistant."):
+def get_ai_response(client, model, chat_messages, instruction = ""):
     try:
         messages = [{
             "role": "system",
             "content": instruction
         }]
-        if history:
-            messages.extend(history[6:])
-        messages.append({
-            "role": "user",
-            "content": user_query
-        })
+        messages.extend(chat_messages[-10:])
         response = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -40,27 +36,50 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = ft.Padding(10, 20, 10, 10)
 
+
+    primary_llm = True
     client = None
     chat_history = []
     base_url = "https://api.openai.com/v1"
     api_key = ""
     model = "gpt-3.5-turbo"
-    instruction = "you are a helpful assistant."
+    instruction = ""
 
 
 
     def get_cridentials():
         cridentials = page.client_storage.get("cridentials")
-        if cridentials:
-            return cridentials.get("base_url"), cridentials.get("api_key"), cridentials.get("model"), cridentials.get("instruction")
+        if cridentials and "primary_llm" in cridentials and "secondary_llm" in cridentials:
+            return [
+                (
+                    cridentials["primary_llm"]["base_url"], 
+                    cridentials["primary_llm"]["api_key"], 
+                    cridentials["primary_llm"]["model"], 
+                    cridentials["primary_llm"]["instruction"]
+                ),
+                (
+                    cridentials["secondary_llm"]["base_url"], 
+                    cridentials["secondary_llm"]["api_key"], 
+                    cridentials["secondary_llm"]["model"], 
+                    cridentials["secondary_llm"]["instruction"]
+                )
+            ]
         return None
 
-    def save_cridentials(base_url, api_key, model, instruction):
+    def save_cridentials(base_url_1, api_key_1, model_1, instruction_1, base_url_2, api_key_2, model_2, instruction_2):
         cridentials = {
-            "base_url": base_url,
-            "api_key": api_key,
-            "model": model,
-            "instruction": instruction
+            "primary_llm" : {
+                "base_url": base_url_1,
+                "api_key": api_key_1,
+                "model": model_1,
+                "instruction": instruction_1
+            },
+            "secondary_llm" : {
+                "base_url": base_url_2,
+                "api_key": api_key_2,
+                "model": model_2,
+                "instruction": instruction_2
+            },
         }
         page.client_storage.set("cridentials", cridentials)
 
@@ -74,10 +93,16 @@ def main(page: ft.Page):
         page.client_storage.set("notes", notes)
 
 
-    base_url_input = ft.TextField(label="Base URL", value=base_url)
-    api_key_input = ft.TextField(label="API Key", password=True, can_reveal_password=True, value=api_key)
-    model_input = ft.TextField(label="Model", value=model)
-    instruction_input = ft.TextField(label="Instruction",value=instruction,expand=True,multiline=True,min_lines=1,max_lines=5)
+    base_url_input_1 = ft.TextField(label="Base URL", value=base_url)
+    api_key_input_1 = ft.TextField(label="API Key", password=True, can_reveal_password=True, value=api_key)
+    model_input_1 = ft.TextField(label="Model", value=model)
+    instruction_input_1 = ft.TextField(label="Instruction",value=instruction,expand=True,multiline=True,min_lines=1,max_lines=5)
+
+    base_url_input_2 = ft.TextField(label="Base URL", value=base_url)
+    api_key_input_2 = ft.TextField(label="API Key", password=True, can_reveal_password=True, value=api_key)
+    model_input_2 = ft.TextField(label="Model", value=model)
+    instruction_input_2 = ft.TextField(label="Instruction",value=instruction,expand=True,multiline=True,min_lines=1,max_lines=5)
+
 
     user_input = ft.TextField(label="User Input",expand=True,multiline=True,min_lines=1,max_lines=3)
 
@@ -119,44 +144,86 @@ def main(page: ft.Page):
         chat_list.controls.append(message_widget)
         page.update()
 
+
+    def change_llm_clicked(e):
+        nonlocal primary_llm, client, base_url, api_key, model, instruction
+        primary_llm = llm_select.value
+        cridentials = get_cridentials()
+        if cridentials is None:
+            add_message("system", "Setup Cridentials first")
+            return
+        
+        if primary_llm:
+            base_url, api_key, model, instruction = cridentials[0]
+            client = create_client(api_key, base_url)
+            add_message("system", f"Using Primary LLM {model}" if client is not None else "Invalid Cridentials for Primary LLM")
+        else:
+            base_url, api_key, model, instruction = cridentials[1]
+            client = create_client(api_key, base_url)
+            add_message("system", f"Using Secondary LLM {model}" if client is not None else "Invalid Cridentials for Secondary LLM")
+        
+
+
     def save_clicked(e):
         nonlocal client, chat_history, base_url, api_key, model, instruction
 
-        base_url = base_url_input.value
-        api_key = api_key_input.value
-        model = model_input.value
-        instruction = instruction_input.value
+        base_url_1 = base_url_input_1.value
+        api_key_1 = api_key_input_1.value
+        model_1 = model_input_1.value
+        instruction_1 = instruction_input_1.value
 
-        if base_url and api_key and model and instruction:
-            save_cridentials(base_url, api_key, model, instruction)
-            chat_history = []
+        base_url_2 = base_url_input_2.value
+        api_key_2 = api_key_input_2.value
+        model_2 = model_input_2.value
+        instruction_2 = instruction_input_2.value
+
+        save_cridentials(base_url_1, api_key_1, model_1, instruction_1, base_url_2, api_key_2, model_2, instruction_2)
+        chat_history = []
+        if primary_llm:
+            base_url = base_url_1
+            api_key = api_key_1
+            model = model_1
+            instruction = instruction_1
             client = create_client(api_key, base_url)
-            chat_list.controls.clear()
             if client is not None:
-                add_message("system",f"New credentials added.\nAi model: {model}")
+                chat_list.controls.clear()
+                add_message("system",f"Primary model: {model}")
             else:
-                add_message("system", "invalid apikey or base url")
+                add_message("system", "Invalid Cridentials for Primary LLM")
+        else:
+            base_url = base_url_2
+            api_key = api_key_2
+            model = model_2
+            instruction = instruction_2
+            client = create_client(api_key, base_url)
+            if client is not None:
+                chat_list.controls.clear()
+                add_message("system",f"Secondary model: {model}")
+            else:
+                add_message("system", "Invalid Cridentials for Secondary LLM")
         page.go("/")
-        page.update()
-
+        
 
     def send_clicked(e):
-        nonlocal client, chat_history, base_url, api_key, model, instruction
+        nonlocal client, chat_history, model, instruction
         user_query = user_input.value
-        if user_query == "" or client is None or base_url == "" or api_key == "" or model == "" or instruction is None:
-            add_message("system", "invalid credentials")
+        if not user_query or instruction is None:
             return
         user_input.value = ""
         add_message("user", user_query)
-        add_message("ai", "thinking...")
-        output = get_ai_response(client, model, user_query, chat_history, instruction)
-        if output is None:
-            add_message("system", "invalid apikey or base url")
-            return
-        chat_history.append({"role": "user", "content": user_query})
-        chat_history.append({"role": "assistant", "content": output})
+        add_message("ai", "Thinking...")
+        user_message = {"role": "user", "content": user_query}
+        chat_history.append(user_message)
+        ai_response = get_ai_response(client, model, chat_history, instruction)
+        if ai_response is None:
+            chat_list.controls.pop()
+            add_message("system", "Invalid Cridentials")
+        chat_history.append({"role": "assistant", "content": ai_response})
         chat_list.controls.pop()
-        add_message("ai", output)
+        add_message("ai", ai_response)
+        
+
+
 
     def clear_clicked(e):
         nonlocal chat_history, model
@@ -168,9 +235,9 @@ def main(page: ft.Page):
     def save_notes_clicked(e):
         notes = notes_input.value
         save_notes(notes)
-        page.go("/")
+        add_message("system", "Notes saved")
 
-
+    llm_select = ft.Checkbox(label="Use Primary LLM", value=primary_llm, on_change=change_llm_clicked)
 
     chat_screen = ft.Column(
         expand=True,
@@ -186,6 +253,8 @@ def main(page: ft.Page):
             ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Divider(),
             ft.Container(expand=True,padding=ft.Padding(0,10,0,10), content=chat_list),
+            ft.Divider(),
+            llm_select,
             ft.Row(controls=[user_input, ft.IconButton(icon=ft.Icons.SEND,on_click=send_clicked)])
         ]
     )
@@ -193,22 +262,31 @@ def main(page: ft.Page):
     settings_screen = ft.Column(
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-        base_url_input,
-        api_key_input,
-        model_input,
-        instruction_input,
-        ft.Divider(),
-        ft.Row(
-            width=page.width*0.8 if page.width else 200,
-            controls=[
-            ft.ElevatedButton("Save", on_click=save_clicked, expand=True),
-            ft.ElevatedButton("Back", on_click=lambda _: page.go("/"), expand=True),
-        ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            ft.Text("Primary llm"),
+            base_url_input_1,
+            api_key_input_1,
+            model_input_1,
+            instruction_input_1,
+            ft.Divider(),
+            ft.Text("Secondary llm"),
+            base_url_input_2,
+            api_key_input_2,
+            model_input_2,
+            instruction_input_2,
+            ft.Divider(),
+            ft.Row(
+                width=page.width*0.8 if page.width else 200,
+                controls=[
+                ft.ElevatedButton("Save", on_click=save_clicked, expand=True),
+                ft.ElevatedButton("Back", on_click=lambda _: page.go("/"), expand=True),
+            ],alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
     ])
 
     notes_screen = ft.Column(
         horizontal_alignment = ft.CrossAxisAlignment.CENTER,
         controls = [
+            ft.Text("Notes"),
+            ft.Divider(),
             notes_input,
             ft.Divider(),
             ft.Row(
@@ -248,17 +326,20 @@ def main(page: ft.Page):
 
     cridentials = get_cridentials()
     if cridentials is not None:
-        base_url, api_key, model, instruction = cridentials
-        base_url_input.value = base_url
-        api_key_input.value = api_key
-        model_input.value = model
-        instruction_input.value = instruction
-        client = create_client(api_key, base_url)
-        if client is not None:
-            add_message("system",f"Ai model: {model}")
+        if primary_llm:
+            base_url, api_key, model, instruction = cridentials[0]
+            client = create_client(api_key, base_url)
+            add_message("system", f"Primary model: {model}" if client is not None else "Invalid Cridentials for Primary LLM")
+        else:
+            base_url, api_key, model, instruction = cridentials[1]
+            client = create_client(api_key, base_url)
+            add_message("system", f"Secondary model: {model}" if client is not None else "Invalid Cridentials for Secondary LLM")
+        base_url_input_1.value, api_key_input_1.value, model_input_1.value, instruction_input_1.value = cridentials[0]
+        base_url_input_2.value, api_key_input_2.value, model_input_2.value, instruction_input_2.value = cridentials[1]
+
     else:
         add_message("system", "Setup Cridentials first")
-    page.update()
+
 
     def view_pop(view):
         page.views.pop()
