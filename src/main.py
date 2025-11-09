@@ -1,5 +1,60 @@
 import flet as ft
-from utils import get_notes, add_note, delete_note
+import requests
+URL = "https://taapidemo.pythonanywhere.com/sqlite"
+
+def get_notes(key, url=URL):
+    payload = {
+        "command": "select * from mysyncnotes;"
+    }
+    try:
+        r = requests.post(
+            url=url,
+            headers={
+                "Content-Type": "application/json",
+                "X-API-Key": key
+            },
+            json=payload
+        )
+        r.raise_for_status()
+        data = r.json()
+        if data["success"] and data["data"] is not None:
+            return data["data"]
+        else:
+            return None
+    except:
+        return None
+
+def add_note(note, key, url=URL):
+    headers = {
+        "Content-Type": "application/json",
+        "X-API-Key": key
+    }
+    payload = {
+        "command":"INSERT INTO mysyncnotes (note) VALUES (?)",
+        "params":[note]
+    }
+    try:
+        r = requests.post(url=url, headers=headers, json=payload)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+    
+def delete_note(id, key, url=URL):
+    headers = {
+        "Content-Type": "application/json",
+        "X-API-Key": key
+    }
+    payload = {
+        "command":"DELETE FROM mysyncnotes WHERE id = ?",
+        "params":[int(id)]
+    }
+    try:
+        r = requests.post(url=url, headers=headers, json=payload)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
 
 def main(page: ft.Page):
     page.title = "SyncNotes"
