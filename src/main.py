@@ -1,6 +1,6 @@
 import flet as ft
 import requests
-URL = "https://taapidemo.pythonanywhere.com/sqlite"
+URL = "api-url"
 
 def get_notes(key, url=URL):
     payload = {
