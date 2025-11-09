@@ -1,7 +1,7 @@
 [project]
-name = "Chatrify-ChatBot"
-version = "2.1.0"
-description = "A chat bot application for openai compatible llms providers."
+name = "syncNotes"
+version = "1.0.0"
+description = "A note application with flask backend and sqlite database."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
