@@ -1,6 +1,6 @@
 [project]
 name = "syncNotes"
-version = "1.0.0"
+version = "1.1.0"
 description = "A note application with flask backend and sqlite database."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,7 +15,7 @@ org = "com.mycompany"
 
 # project display name that is used as an app title on Android and iOS home screens,
 # shown in window titles and about app dialogs on desktop.
-product = "Ai"
+product = "NoteBridge"
 
 # company name to display in about app dialogs
 company = "Flet_aritracodespy"
