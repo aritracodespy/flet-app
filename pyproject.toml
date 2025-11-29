@@ -1,7 +1,7 @@
 [project]
-name = "syncNotes"
-version = "1.1.0"
-description = "A note application with flask backend and sqlite database."
+name = "notebridge notepad"
+version = "1.0.0"
+description = "A notepad application with flask backend"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
