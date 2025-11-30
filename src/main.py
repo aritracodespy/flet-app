@@ -1,6 +1,5 @@
 import flet as ft
 import requests
-import json
 import time
 import base64
 
@@ -56,11 +55,12 @@ def _load_note_content(base_url, key):
 
 def main(page: ft.Page):
     page.title = "My Notepad"
-    page.scroll = True
+    page.scroll = ft.ScrollMode.AUTO
+    page.padding = ft.Padding(5, 50, 5, 10)
 
     def load_cred():
         s = page.client_storage.get("SYNC-NOTE-CRED")
-        return json.loads(s) if s else {"api-key": "", "url": ""}
+        return s if s else {"api-key": "", "url": ""}
 
     creds = load_cred()
 
@@ -79,15 +79,15 @@ def main(page: ft.Page):
     settings = ft.Column(visible=False)
 
     def save_cred(e):
-        apikey = key_i.value.strip()
-        url = url_i.value.strip()
+        apikey = key_i.value
+        url = url_i.value
 
         if not apikey or not url:
             return
 
         page.client_storage.set(
             "SYNC-NOTE-CRED",
-            json.dumps({"api-key": apikey, "url": url}),
+            {"api-key": apikey.strip(), "url": url.strip()},
         )
 
         settings.visible = False
@@ -119,9 +119,13 @@ def main(page: ft.Page):
         if not base_url or not key:
             return
 
+        main_textfield.value = "Lodding..."
+        page.update()
         data = _load_note_content(base_url, key)
 
         if data is None:
+            main_textfield.value = ""
+            page.update()
             page.open(ft.SnackBar(content=ft.Text("Can't load notes")))
             return
 
@@ -133,7 +137,7 @@ def main(page: ft.Page):
         page.update()
 
     def _save(e = None):
-        text = main_textfield.value.strip()
+        text = main_textfield.value
         if not text:
             return
 
@@ -145,7 +149,7 @@ def main(page: ft.Page):
             page.open(ft.SnackBar(content=ft.Text("Credentials not saved!")))
             return
 
-        data = _update_note_content(base_url, key, text)
+        data = _update_note_content(base_url, key, text.strip())
 
         if data is None:
             page.open(ft.SnackBar(content=ft.Text("Can't save notes")))
@@ -156,21 +160,26 @@ def main(page: ft.Page):
         else:
             page.open(ft.SnackBar(content=ft.Text(str(data.get("error")))))
 
-    page.floating_action_button = ft.PopupMenuButton(
-        items=[
-            ft.PopupMenuItem(icon=ft.Icons.SAVE, text="Save", on_click=_save),
-            ft.PopupMenuItem(icon=ft.Icons.SETTINGS, text="Settings", on_click=toggle_settings),
-        ]
+
+    page.floating_action_button = ft.FloatingActionButton(
+        content=ft.PopupMenuButton(
+            items=[
+                ft.PopupMenuItem(icon=ft.Icons.SAVE, text="Save", on_click=_save),
+                ft.PopupMenuItem(icon=ft.Icons.SETTINGS, text="Settings", on_click=toggle_settings),
+            ]
+        ),
+        bgcolor=ft.Colors.TRANSPARENT
     )
 
     page.add(
         ft.Container(
             expand=True,
-            padding=ft.Padding(0, 20, 0, 10),
+            margin=ft.Margin(5,10,5,0), 
+            padding=ft.Padding(0,10,0,10),
             content=ft.Column(
-                expand=True,
+                expand=True, spacing=10,
                 controls=[settings, main_textfield],
-            ),
+            )
         )
     )
 
@@ -181,7 +190,7 @@ def main(page: ft.Page):
         _read()
 
     def auto_save():
-        time.sleep(60)
+        time.sleep(90)
         _save()
 
     page.run_thread(auto_save)
